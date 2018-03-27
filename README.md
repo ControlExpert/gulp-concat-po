@@ -1,6 +1,6 @@
-# gulp-concat-po [![NPM version](https://badge.fury.io/js/gulp-concat-po.png)](https://www.npmjs.org/package/gulp-concat-po)
+# gulp-merge-po [![NPM version](https://badge.fury.io/js/gulp-concat-po.png)](https://www.npmjs.org/package/gulp-merge-po)
 
-> Correctly concatenates .po files.
+> Correctly merging i18 .po files.
 
 
 ## Install
@@ -8,7 +8,7 @@
 1. Install the plugin with the following command:
 
 	```shell
-	npm install gulp-concat-po --save-dev
+	npm install gulp-merge-po --save-dev
 	```
 
 
@@ -16,11 +16,11 @@
 
 ```js
 var gulp = require('gulp');
-var concatPo = require('gulp-concat-po');
+var mergePo = require('gulp-merge-po');
 
 gulp.task('default', function () {
     return gulp.src(['src/gettext/*.po'])
-        .pipe(concatPo('messages.pot'))
+        .pipe(mergePo('messages.pot'))
         .pipe(gulp.dest('release'));
 });
 ```
@@ -28,7 +28,7 @@ gulp.task('default', function () {
 
 ## API
 
-### concatPo(fileName, options)
+### mergePo(fileName, options)
 
 #### fileName
 
