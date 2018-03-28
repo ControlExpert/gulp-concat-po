@@ -1,86 +1,94 @@
+// PLUGIN_NAME: gulp-merge-po 
 var through = require('through2'),
     gutil = require('gulp-util'),
-    PoFile = require('pofile'),
+	PoFile = require('pofile');
     lodash = require('lodash'),
     path = require('path');
 
 /**
- * Concatenates several .po file into one.
+ * Merge .po files by convention. XX-YY is produced from XX-YY + XX if not defined in XX-YY. 
+ * @param  {String} action - action 'merge' or 'clean' - clean sub culture file from redundant entries
  *
- * @param {String} name Name of the target file
- * @param {Object} options List of additional options.
- *
- * @returns {Function} A function which can be piped to files stream.
+ * @returns {Function} A function which can be piped to files stream containing modified files
  */
-var concatPoPlugin = function(fileName, options) {
-    var options = options || {},
-        combinedPo,
-        firstFile = false;
+var mergePoPlugin = function(action) {
+	
+	if (action === undefined) {
+		action = 'merge';
+	}
+    
+	var poFiles = [];
+	
+	return through.obj(function(file, enc, callback) {
 
-    if (!fileName) {
-        throw new gutil.PluginError('gulp-concat-po', 'fileName argument must be set')
-    }
+		var stream = this;
+			
+			if (file.isNull()) {
+				callback();
+				return;
+			}
 
-    return through.obj(function(file, enc, callback) {
-        var stream = this;
+			if (file.isStream()) {
+				stream.emit('error', new gutil.PluginError('gulp-merge-po', 'Streams are not supported'));
+				callback();
+				return;
+			}
 
-        if (file.isNull()) {
-            callback();
+			var poFile = PoFile.parse(file.contents.toString())
+				
+			poFiles.push({ path: file.path, po: poFile});
 
-            return;
-        }
+			callback();
+		}, function(callback) {
+			
+			var that = this;
+			
+			lodash.forEach(poFiles, function (subCultureFile) {
 
-        if (file.isStream()) {
-            stream.emit('error', new gutil.PluginError('gulp-concat-po', 'Streams are not supported'));
-            callback();
+				var modifiedPoFile = PoFile.parse(subCultureFile.po.toString());
 
-            return;
-        }
+				lodash.forEach(poFiles, function (cultureFile) {
+			
+					if (path.basename(subCultureFile.path, '.po').startsWith(path.basename(cultureFile.path, '.po'))) {
+								
+						modifiedPoFile.items.forEach(function (modifiedItem) {
+							cultureFile.po.items.forEach(function (cultureItem) {
+								if (strEqual(cultureItem.msgid, modifiedItem.msgid)) {
+									switch (action) {
+										case 'merge':
+										default:
+											if (strEqual(modifiedItem.msgstr, '')) {
+												modifiedItem.msgstr = cultureItem.msgstr;
+											}
+											break;
+										case 'clean':										
+											if (!strEqual(subCultureFile.path, cultureFile.path) &&
+												strEqual(cultureItem.msgstr, modifiedItem.msgstr)) {
+												modifiedItem.msgstr = '';
+											}
+											break;
+									}
+								}
+							});
+						});
 
-        var currentPo = PoFile.parse(file.contents.toString());
+						var file = new gutil.File({
+							path: path.basename(subCultureFile.path),
+							contents: new Buffer(modifiedPoFile.toString())
+						});
+		
+						that.push(file);	
+					}
 
-        if (!firstFile) {
-            // The current file is the first file.
-            firstFile = file;
+				});
+			});
+			
+			callback();
+		});
+		
+	function strEqual(strA, strB) {
+		return strA+'|' === strB+'|';
+	};
+};
 
-            combinedPo = new PoFile();
-            // Use headers from the first file
-            combinedPo.headers = lodash.merge(currentPo.headers, (options.headers || {}));
-            // Array.prototype.concat([]) is used to clone the items array
-            combinedPo.items = currentPo.items.concat([]);
-        } else {
-            // Merge files by merging their items
-            for (var i = 0, l = currentPo.items.length; i < l; i++) {
-                var currentItem = currentPo.items[i];
-
-                // Check if the current item is already in the target po file.
-                var sameItem = lodash.find(combinedPo.items, function(item) {
-                    return (item.msgid === currentItem.msgid)
-                        && (item.msgctxt === currentItem.msgctxt);
-                });
-
-                if (sameItem) {
-                    // Merge items by merging their references
-                    sameItem.references = lodash.unique(sameItem.references.concat(currentItem.references));
-                } else {
-                    // Add item to the resulting file
-                    combinedPo.items.push(currentItem);
-                }
-            }
-        }
-
-        callback();
-    }, function(callback) {
-        this.push(new gutil.File({
-            cwd: firstFile.cwd,
-            base: firstFile.base,
-            path: path.join(firstFile.base, fileName),
-            contents: new Buffer(combinedPo.toString()),
-            stat: firstFile.stat
-        }));
-
-        callback();
-    });
-}
-
-module.exports = concatPoPlugin;
+module.exports = mergePoPlugin;
