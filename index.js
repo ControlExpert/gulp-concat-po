@@ -7,7 +7,7 @@ var through = require('through2'),
 
 /**
  * Merge .po files by convention. XX-YY is produced from XX-YY + XX if not defined in XX-YY. 
- * @param  {String} action - action 'merge' or 'clean' - clean sub culture file from redundant entries
+ * @param  {String} action Action 'merge' or 'clean' - clean sub culture file from redundant entries
  *
  * @returns {Function} A function which can be piped to files stream containing modified files
  */

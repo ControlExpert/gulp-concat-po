@@ -2,6 +2,18 @@
 
 > Correctly merging i18 .po files.
 
+Country specific files shall contain only the changes specific for country. For given files:
+
+```
+src/gettext/es.po
+src/gettext/es-MX.po
+src/gettext/es-ES.po
+```
+
+The [es.po] will be not affected.
+The [es-MX.po] will be a merge of [es-MX.po] over [es.po] 
+
+etc.
 
 ## Install
 
@@ -20,7 +32,7 @@ var mergePo = require('gulp-merge-po');
 
 gulp.task('default', function () {
     return gulp.src(['src/gettext/*.po'])
-        .pipe(mergePo('messages.pot'))
+        .pipe(mergePo('merge'))
         .pipe(gulp.dest('release'));
 });
 ```
@@ -28,34 +40,16 @@ gulp.task('default', function () {
 
 ## API
 
-### mergePo(fileName, options)
+### mergePo(action)
 
-#### fileName
+#### action
 
 Type: `String`
 
-Name of the resulting file.
+Action to execute:
 
-#### options.headers
-
-Type: `Object`
-
-A list of headers that will be used in the resulting .po file. The object can contain the following keys:
-
-- Project-Id-Version
-- Report-Msgid-Bugs-To
-- POT-Creation-Date
-- PO-Revision-Date
-- Last-Translator
-- Language
-- Language-Team
-- Content-Type
-- Content-Transfer-Encoding
-- Plural-Forms
-
-Description of the fields can be found [here](https://www.gnu.org/software/gettext/manual/html_node/Header-Entry.html#Header-Entry).
-If a field is not specified the value from the first file in the stream will be used.
-
+- merge [default] - merges incoming piped files,
+- clean - clean the files by removing from sub culture files redundant entries
 
 ## License
 
