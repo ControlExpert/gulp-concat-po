@@ -53,4 +53,4 @@ Action to execute:
 
 ## License
 
-[MIT](http://opensource.org/licenses/MIT) © Dmitriy Simushev
+[MIT](http://opensource.org/licenses/MIT)
