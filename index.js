@@ -95,6 +95,7 @@ var mergePoPlugin = function (action) {
                 cleanAllFuzzy(poFileContent);
             } else if (action === CLEAN_ACTION) {
                 console.log('\nCleaning: ' + allPoFiles.length + ' PO resource files');
+                cleanPoItems();
             }
             saveFile(poFile, poFileContent);
         });
