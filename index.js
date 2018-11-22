@@ -124,7 +124,7 @@ var mergePoPlugin = function (action) {
             var found = null;
             lodash.forEach(cultureContent.items, function (item, key) {
                 if (key > itemKey) {
-                    key = itemKey;
+                    itemKey = key;
                 }
             });
             return itemKey + 1;
@@ -158,37 +158,32 @@ var mergePoPlugin = function (action) {
                     toBeAdded.push(cultureItem);
                 } else {
                     var hasEmptyTranslation = areMsgStrEntryEqual(subCultureItem.msgstr, EMPTY_MSGSTR);
-                    // if (subCultureItem.msgid === 'Include roles') {
-                    //     printObjRecursive(cultureItem);
-                    //     printObjRecursive(subCultureItem);
-                    // }
                     if (hasEmptyTranslation) {
-                        lodash.extend(subCultureItem, lodash.cloneDeep(cultureItem));
+                        mergeInstance(subCultureItem, cultureItem);
                     } else if (isFuzzy(subCultureItem)) {
                         countFuzzyOverwritten++;
-                        lodash.extend(subCultureItem, lodash.cloneDeep(cultureItem));
+                        mergeInstance(subCultureItem, cultureItem);
                     }
                 }
             });
 
             console.log('Fuzzy translations overwritten: ' + countFuzzyOverwritten);
 
-            // seems not needed
-            // if (toBeAdded.length > 0) {
-            //     console.log('Translations to be added: ' + toBeAdded.length);
-            //     lodash.forEach(toBeAdded, function (cultureItemToAdd, idx) {
-            //         // if (idx === 0) {
-            //         //     printObjRecursive   (cultureItemToAdd);
-            //         // }
-            //         var itemKey = getNextHighestItemKey(subCultureContent);
-            //         subCultureContent[itemKey] = lodash.cloneDeep(cultureItemToAdd);
-            //     });
-            // }
+            if (toBeAdded.length > 0) {
+                console.log('Translations to be added: ' + toBeAdded.length);
+                //console.log('before:' + lodash.keys(subCultureContent.items).length);
+                lodash.forEach(toBeAdded, function (cultureItemToAdd, idx) {
+                    var nexItemKeyStr = getNextHighestItemKey(subCultureContent).toString(10);
+                    subCultureContent.items[nexItemKeyStr] = copyInstance(cultureItemToAdd);
+                });
+                //console.log('after:' + lodash.keys(subCultureContent.items).length);
+            }
         }
-
+        
         function saveFile(resourceFile, contentObj) {
+            var basename = path.basename(resourceFile.path);
             var file = new gutil.File({
-                path: path.basename(resourceFile.path),
+                path: basename,
                 contents: new Buffer(contentObj.toString())
             });
 
@@ -247,9 +242,25 @@ var mergePoPlugin = function (action) {
         }
     });
 
-    function printObj(obj) {
+    //copy is done as an object, no class methods.
+    function mergeInstance(target, source) {
+        lodash.extend(target, lodash.cloneDeep(source));
+    }
+
+    //copy is done as a class instance
+    function copyInstance(original) {
+        var copied = Object.assign(
+            Object.create(
+                Object.getPrototypeOf(original)
+            ),
+            original
+        );
+        return copied;
+    }
+
+    function printObj(obj, allProps) {
         for (var name in obj) {
-            if (obj.hasOwnProperty(name)) {
+            if (obj.hasOwnProperty(name) || allProps) {
                 console.log('prop(' + typeof(name) + '):\'' + name + '\' value(' + typeof(obj[name]) + '):\'' + obj[name] + '\'');
             }
         }
