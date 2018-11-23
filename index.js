@@ -81,16 +81,21 @@ var mergePoPlugin = function (action) {
         console.log('Detecting culture dependency types for ' + allPoFiles.length + ' PO resource files');
         detectCultureTypes(allPoFiles);
         var cleanedFiles = {};
+        var bypassedFiles = [];
+        var bypassedFilesStr = ''
 
         lodash.forEach(allPoFiles, function (poFile) {
             var poFileContent = PoFile.parse(poFile.poObj.toString());
             if (action === MERGE_ACTION) {
                 //if we need to merge anything
                 if (poFile.isSubCulture && poFile.parentCulture) {
-                    console.log('\nMerging: ' + poFile.parentCulture.filename + ' -> ' + poFile.filename);
-                    mergeParentCulture(poFile, poFileContent, poFile.parentCulture);
+                    var mergeResult = mergeParentCulture(poFile, poFileContent, poFile.parentCulture);
+                    console.log('Merging: ' + poFile.parentCulture.filename + ' -> ' + poFile.filename +
+                        ' (added:' + mergeResult.added + ', updated:' + mergeResult.updated + ', fuzzy: ' + mergeResult.fuzzyOverwritten +  ')');
+
                 } else {
-                    console.log('\nBypassing: ' + poFile.filename);
+                    bypassedFiles.push(poFile.filename);
+                    bypassedFilesStr += poFile.filename + ', '
                 }
                 cleanAllFuzzy(poFileContent);
             } else if (action === CLEAN_ACTION) {
@@ -105,6 +110,11 @@ var mergePoPlugin = function (action) {
                 console.log('file: ' + key);
             });
         }
+
+        if (bypassedFiles.length > 0) {
+            console.log('\nBypassed resources(' + bypassedFiles.length + '): ' + bypassedFilesStr);
+        }
+
 
         callback();
 
@@ -150,6 +160,7 @@ var mergePoPlugin = function (action) {
             var cultureContent = PoFile.parse(culturePoFile.poObj.toString());
             cleanAllFuzzy(cultureContent);
             var countFuzzyOverwritten = 0;
+            var countUpdated = 0;
             var toBeAdded = [];
             lodash.forEach(cultureContent.items, function (cultureItem, cItemKey) {
                 var subCultureItem = findItemByMsgId(subCultureContent, cultureItem.msgid);
@@ -160,23 +171,30 @@ var mergePoPlugin = function (action) {
                     var hasEmptyTranslation = areMsgStrEntryEqual(subCultureItem.msgstr, EMPTY_MSGSTR);
                     if (hasEmptyTranslation) {
                         mergeInstance(subCultureItem, cultureItem);
+                        countUpdated++;
                     } else if (isFuzzy(subCultureItem)) {
                         countFuzzyOverwritten++;
+                        countUpdated++;
                         mergeInstance(subCultureItem, cultureItem);
                     }
                 }
             });
 
-            console.log('Fuzzy translations overwritten: ' + countFuzzyOverwritten);
+            //console.log('Fuzzy translations overwritten: ' + countFuzzyOverwritten);
 
             if (toBeAdded.length > 0) {
-                console.log('Translations to be added: ' + toBeAdded.length);
+                //console.log('Translations to be added: ' + toBeAdded.length);
                 //console.log('before:' + lodash.keys(subCultureContent.items).length);
                 lodash.forEach(toBeAdded, function (cultureItemToAdd, idx) {
                     var nexItemKeyStr = getNextHighestItemKey(subCultureContent).toString(10);
                     subCultureContent.items[nexItemKeyStr] = copyInstance(cultureItemToAdd);
                 });
                 //console.log('after:' + lodash.keys(subCultureContent.items).length);
+            }
+            return {
+                added: toBeAdded.length,
+                updated: countUpdated,
+                fuzzyOverwritten: countFuzzyOverwritten
             }
         }
         
