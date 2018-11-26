@@ -97,7 +97,7 @@ var mergePoPlugin = function (action) {
                     bypassedFiles.push(poFile.filename);
                     bypassedFilesStr += poFile.filename + ', '
                 }
-                cleanAllFuzzy(poFileContent);
+                //cleanAllFuzzy(poFileContent);
             } else if (action === CLEAN_ACTION) {
                 console.log('\nCleaning: ' + allPoFiles.length + ' PO resource files');
                 cleanPoItems();
@@ -158,7 +158,7 @@ var mergePoPlugin = function (action) {
 
         function mergeParentCulture(subCulturePoFile, subCultureContent, culturePoFile) {
             var cultureContent = PoFile.parse(culturePoFile.poObj.toString());
-            cleanAllFuzzy(cultureContent);
+            //cleanAllFuzzy(cultureContent);
             var countFuzzyOverwritten = 0;
             var countUpdated = 0;
             var toBeAdded = [];
@@ -172,10 +172,11 @@ var mergePoPlugin = function (action) {
                     if (hasEmptyTranslation) {
                         mergeInstance(subCultureItem, cultureItem);
                         countUpdated++;
-                    } else if (isFuzzy(subCultureItem)) {
+                    } else if (isFuzzy(subCultureItem) && !isFuzzy(cultureItem)) {
                         countFuzzyOverwritten++;
                         countUpdated++;
                         mergeInstance(subCultureItem, cultureItem);
+                        cleanFuzzy(subCultureItem);
                     }
                 }
             });
