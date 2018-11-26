@@ -94,8 +94,10 @@ var mergePoPlugin = function (action) {
                         ' (added:' + mergeResult.added + ', updated:' + mergeResult.updated + ', fuzzy: ' + mergeResult.fuzzyOverwritten +  ')');
 
                 } else {
+                    var fuzzyCount = getFuzzyCount(poFile);
+                    var emptyCount = getEmptyCount(poFile);
                     bypassedFiles.push(poFile.filename);
-                    bypassedFilesStr += poFile.filename + ', '
+                    bypassedFilesStr += '\n' + poFile.filename + ' - (fuzzy:' + fuzzyCount + ', empty:' + emptyCount+ '), '
                 }
                 //cleanAllFuzzy(poFileContent);
             } else if (action === CLEAN_ACTION) {
@@ -117,6 +119,26 @@ var mergePoPlugin = function (action) {
 
 
         callback();
+
+        function getFuzzyCount(poFile) {
+            var count = 0;
+            lodash.forEach(poFile.poObj.items, function (item, key) {
+                if (isFuzzy(item)) {
+                    count++;
+                }
+            });
+            return count;
+        }
+
+        function getEmptyCount(poFile) {
+            var count = 0;
+            lodash.forEach(poFile.poObj.items, function (item, key) {
+                if (!isFuzzy(item) && areMsgStrEntryEqual(item.msgstr, EMPTY_MSGSTR)) {
+                    count++;
+                }
+            });
+            return count;
+        }
 
         function findItemByMsgId(cultureContent, msgId) {
             var found = null;
